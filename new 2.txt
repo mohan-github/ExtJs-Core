@@ -1,0 +1,656 @@
+
+
+
+/*!
+ * Ext JS Library 4.0
+ * Copyright(c) 2006-2011 Sencha Inc.
+ * licensing@sencha.com
+ * http://www.sencha.com/license
+ */
+
+Ext.define('StaticContent.extjs4_2.src.base.controller.eBizMainApp', {
+   // extend: 'Ext.StaticContent.base.controller.desktop.App'
+
+    
+    requires: [
+              // 'StaticContent.base.view.quickLinks.quickLinksV',
+               'StaticContent.extjs4_2.src.base.view.location.LocationMainV',
+              'StaticContent.extjs4_2.src.base.view.organization.OrganizationMainV',
+              'StaticContent.extjs4_2.src.base.view.userManagement.UserMgtMainV',
+              'StaticContent.extjs4_2.src.base.view.changePassword.ChangePasswordV',
+              'StaticContent.extjs4_2.src.base.view.sequenceControl.SequenceControlMainV',
+              'StaticContent.extjs4_2.src.base.view.master.agent.AgentMainV',
+              'StaticContent.extjs4_2.src.base.view.master.subAgent.SubAgentMainV',
+              'StaticContent.extjs4_2.src.base.view.master.item.ItemMainV',
+              'StaticContent.extjs4_2.src.base.view.master.uom.UomMainV',
+              'StaticContent.extjs4_2.src.base.view.master.itemType.ItemTypeMainV',
+              'StaticContent.extjs4_2.src.base.view.master.itemCategory.ItemCategoryMainV',
+              'StaticContent.extjs4_2.src.base.view.master.customer.CustomerMainV',
+              'StaticContent.extjs4_2.src.base.view.point.pointDetails.PointDetailsMainV',
+              'StaticContent.extjs4_2.src.base.view.inventory.stockEntry.StockEntryMainV',
+              'StaticContent.extjs4_2.src.base.view.vehicle.vehicleDetails.VehicleDetailsMainV',
+              'StaticContent.extjs4_2.src.base.view.master.wareHouse.WareHouseMainV',
+              'StaticContent.extjs4_2.src.base.view.master.supplier.SupplierMainV',
+              'StaticContent.extjs4_2.src.base.view.master.vehicleType.VehicleTypeMainV',
+              'StaticContent.extjs4_2.src.base.view.accounts.ledger.LedgerMgtMainV',
+              'StaticContent.extjs4_2.src.base.view.master.drillingType.DrillingTypeMainV',
+              'StaticContent.extjs4_2.src.base.view.point.pointPriceDetails.PointPriceDetailsMainV',
+              'StaticContent.extjs4_2.src.base.view.accounts.accExp.AccExpensesMainV',
+              'StaticContent.extjs4_2.src.base.view.accounts.accRec.AccReceiptsMainV',
+              'StaticContent.extjs4_2.src.base.view.master.employeeType.EmployeeTypeGridListMainV',
+              'StaticContent.extjs4_2.src.base.view.master.fuelConsumption.FuelConsumptionMainV',
+              'StaticContent.extjs4_2.src.base.view.report.ViewRequestMainV',
+              'StaticContent.extjs4_2.src.base.view.master.vehicleCategory.VehicleCategoryMainV',
+              'StaticContent.extjs4_2.src.base.view.accounts.accDayBook.AccDayBookMainV',
+              'StaticContent.extjs4_2.src.base.view.inventory.stockEnquiry.StockEnquiryMainV',
+              'StaticContent.extjs4_2.src.base.view.inventory.stockAdjustment.StockAdjustmentMainV',
+              'StaticContent.extjs4_2.src.base.view.report.ReportMainV',
+              'StaticContent.extjs4_2.src.base.view.accounts.accJournalVoucher.AccJournalVoucherMainV'
+              
+    ],
+
+    init: function() {
+	initTimer();
+	var currentItem = this; // Variable Is Used To Call Function While Clicking Logout Button & Changing Theme..
+	var count = 0;	// Incrementing While Adding Tab
+    Ext.getDoc().on('click', function(){
+    	
+    	initTimer();
+		Ext.Ajax.request({  
+			url     : 'validateSession.action',
+			success : function (result, request) { 
+				var jsonData = Ext.decode(result.responseText);
+                var resultMessage = jsonData.data.result;
+                if(resultMessage == 'invalid') {
+                    Ext.Msg.show({
+                        title   : 'Session Expired',
+                        msg     : 'User Session has been expired. Please re-login!',
+                        buttons : Ext.Msg.OK,
+                        fn      : function(btn, text, option) {		                                
+                            window.location.href = 'index.jsp';		                                		                                
+                        },
+                        icon    : Ext.MessageBox.INFO
+                    });
+                }
+			}
+		});
+	});
+
+    	var count = 0;	// Incrementing While Adding Tab
+    	var toolbar1 = null;
+    	var jsFiledAdded = [];
+    	toolbar1 = new Ext.toolbar.Toolbar({
+        	width		: '100%',
+        	listeners	: { 'beforerender':function(){
+								toolbar1.add({
+									xtype : 'tbspacer',
+									width : 15
+								});
+						    	Ext.Ajax.request({
+									url		: 'getListOfMenu.action', // Fires MenuAction
+									success : function(resp) {
+											try {
+												var menuList = Ext.decode(resp.responseText).menuList;
+													Ext.each(menuList, function(menusTODisp) {
+														var dispMenuName = menusTODisp.text;
+														var dispMenuIcon = menusTODisp.iconCls;
+														var menu = new Ext.menu.Menu({});
+														
+														toolbar1.add({	// Dynamically Adding Split Button Based On Menus(Which Was Fetched From Database)..
+															xtype       : 'button',
+															menu        : menu,
+											    		//	scale       : 'medium',
+															text        : dispMenuName,
+															iconCls     : dispMenuIcon,
+															listeners	: { 'beforerender':function(){
+														    	Ext.Ajax.request({
+																	url		: 'getListOfModulesForMenu.action', // Fires ModuleAction
+																	params	: {menuName:dispMenuName},
+																	success : function(resp) {
+																			try {
+																				var moduleList = Ext.decode(resp.responseText).moduleList;
+																					Ext.each(moduleList, function(modulesTODisp) {
+																						var dispModuleName = modulesTODisp.text;
+																						var dispModuleIcon = modulesTODisp.iconCls;
+																						var dispModuleDesc = modulesTODisp.desc;
+																						menu.add({	// Dynamically Adding Menu Item Based On Modules(Which Was Fetched From Database)..
+																							text    : dispModuleDesc,
+																							iconCls : 'action',
+							    											    			scale   : 'medium',
+																							handler : function(item,e){
+																								//alert(dispModuleName);
+																								if (dispModuleName == 'COMPANY'){
+																									
+																									this.switchPanel('locationMainV', 'locationListVId','Company');
+																								}
+																								else if (dispModuleName == 'CHANGE PASSWORD'){
+																									
+																									this.switchPanel('changePasswordV', null,'Change Password');
+																								}
+																								else if (dispModuleName == 'ORGANIZATION'){
+																										
+																										this.switchPanel('organizationMainV', 'organizationListVId','Organization');
+																								}
+																								else if (dispModuleName == 'EMPLOYEE MANAGEMENT'){
+																									
+																									this.switchPanel('userMgtMainV', 'userListVId','Employee Management');
+																								}
+																								else if (dispModuleName == 'SEQUENCE CONTROL'){
+																									
+																									this.switchPanel('sequenceControlMainV', 'sequenceControlListVId','Sequence Control');
+																								}
+																								else if (dispModuleName == 'AGENT'){
+																									
+																									this.switchPanel('agentMainV', 'agentListVId','Agent');
+																								}
+																								else if (dispModuleName == 'SUB AGENT'){
+																									
+																									this.switchPanel('subAgentMainV', 'subAgentListVId','Sub Agent');
+																								}else if (dispModuleName == 'ITEM'){
+																									
+																									this.switchPanel('itemMainV', 'itemListVId','Item');
+																											
+																								}else if (dispModuleName == 'UOM'){
+																									
+																									this.switchPanel('uomMainV', 'uomListVId','Uom');
+																											
+																								}else if (dispModuleName == 'ITEM CATEGORY'){
+																									
+																									this.switchPanel('itemCategoryMainV', 'itemCategoryListVId','ItemCategory');
+																											
+																								}else if (dispModuleName == 'PARTY'){
+																									
+																									this.switchPanel('customerMainV', 'customerListVId','Party');
+																									
+																								}else if (dispModuleName == 'POINT DETAILS'){
+																									
+																									this.switchPanel('pointDetailsMainV', 'pointDetailsListVId','Point Details');
+																									
+																								}else if (dispModuleName == 'STOCK ENTRY'){
+																									
+																									this.switchPanel('stockEntryMainV', 'stockEntryListVId','Stock Entry');
+																											
+																								} else if (dispModuleName == 'VEHICLE DETAILS'){
+																									
+																									this.switchPanel('vehicleMainV', 'vehicleDetailsListVId','Vehicle Details');
+																								} else if (dispModuleName == 'SUPPLIER'){
+																									
+																									this.switchPanel('supplierMainV', 'supplierListVId','Supplier');
+																								}
+																								else if (dispModuleName == 'STORE'){
+																									
+																									this.switchPanel('wareHouseMainV', 'wareHouseListVId','Store');
+																								}
+																								else if (dispModuleName == 'VEHICLE TYPE'){
+																									
+																									this.switchPanel('vehicleTypeMainV', 'vehicleTypeListVId','Vehicle Type');
+																											
+																								}else if (dispModuleName == 'LEDGER'){
+																									
+																									this.switchPanel('ledgerMgtMainV', 'accLedgerGroupTypeListVId','Ledger');
+																											
+																								}else if (dispModuleName == 'DRILLING TYPE'){
+																									
+																									this.switchPanel('drillingTypeMainV', 'drillingTypeListVId','Drilling Type');
+																											
+																								}else if (dispModuleName == 'DRILLING PRICE'){
+																									
+																									this.switchPanel('pointPriceMainV', 'pointPriceDetailsListVId','Drilling Price');
+																											
+																								}else if (dispModuleName == 'EXPENSES'){
+																									
+																									this.switchPanel('accExpensesMainV', 'accExpensesListVId','Expenses');
+																											
+																								}else if (dispModuleName == 'RECEIPTS'){
+																									
+																									this.switchPanel('accReceiptsMainV', 'accReceiptsListVId','Receipts');
+																											
+																								}else if (dispModuleName == 'EMPLOYEE TYPE'){
+																									
+																									this.switchPanel('employeeTypeGridListMainV', 'employeeTypeGridListVId','Employee Type');
+																											
+																								}else if (dispModuleName == 'DOWNLOAD REPORTS'){
+																									
+																									this.switchPanel('viewRequestMainV', 'viewRequestListVId','View Request');
+																							    }else if (dispModuleName == 'FUEL CONSUMPTION'){
+																									
+																									this.switchPanel('fuelConsumptionMainV', 'fuelConsumptionListVId','Fuel Consumption');
+																									
+																								}else if (dispModuleName == 'VEHICLE CATEGORY'){
+																									
+																									this.switchPanel('vehicleCategoryMainV', 'vehicleCategoryListVId','Vehicle Category');
+																								}else if (dispModuleName == 'DAY BOOK'){
+																									
+																									this.switchPanel('accDayBookMainV', 'accDayBookListVId','Day Book');		
+																								}else if (dispModuleName == 'STOCK ENQUIRY'){
+																									
+																									this.switchPanel('stockEnquiryMainV', 'stockEnquiryListVId','Stock Enquiry');	
+																								}else if (dispModuleName == 'STOCK ADJUSTMENT'){
+																									
+																									this.switchPanel('stockAdjustmentMainV','stockAdjustmentListVId','Stock Adjustment');		
+																								}else if (dispModuleName == 'GENERATE REPORTS'){
+																									
+																									this.switchPanel('reportMainV','generateReportListVId','Generate Request');
+																								}else if (dispModuleName == 'JOURNAL VOUCHER'){
+																									
+																									this.switchPanel('accJournalVoucherMainV','accJournalVoucherListVId','Journal Voucher');
+																								}
+																								
+
+																							},
+																							switchPanel:function(itemName, loadGrid, dispModuleName) {
+																								//LOGIC 1
+																								/* var tabPanel = Ext.getCmp('workAreaPanelId');
+																								    var tabid = loadGrid+'id';
+																								    xtype = loadGrid;
+																								    var tab = Ext.getCmp(tabid);
+																								    if(tab)
+																								    {
+																								        tabPanel.setActiveTab(tab);
+																								        return;
+																								    }
+
+																								    var tab = new Ext.Panel({
+																								       
+																								        title:dispModuleName,
+																								        autoScroll:true,
+																								        layout:'fit',
+																								        
+																								        frame:true,
+																								        closable  : true,
+		    														        	                        xtype     : xtype,
+		    														        	                        workspace : this,
+		    														        	                        id        : xtype + 'Id',
+		    														        	                        width     : '100%',
+		    														        	                        height    : 700
+																								       
+																								    });
+
+																								    tabPanel.add(tab);
+																								    tab.doLayout();
+																								    tabPanel.doLayout(tab);
+																								    tabPanel.setActiveTab(tab);
+																								    if(loadGrid != 'empty') {
+		    														        	                    	Ext.getCmp(loadGrid).getStore().load();
+		    														        	                    }
+																								*/
+																								//LOGIC 2
+						    												                	/* var newPanel,
+						    													                    xtype = itemName;
+						    													                    panels = workAreaPanel.items.containsKey(xtype + 'Id');
+						    													                    alert(panels);
+						    													                    var alreadyAdded = jsFiledAdded.indexOf("["+xtype + 'Id'+"]");
+						    													                    alert(alreadyAdded);
+						    												                	if(count <= 8){		// Checking Whether Opened Tab's Less Than 8..
+    						    												                	if (!panels) {
+						    												                		if(alreadyAdded == -1) {
+			    														            					newPanel = workAreaPanel.add({
+			    														        	                    	closable  : true,
+			    														        	                        xtype     : xtype,
+			    														        	                        //workspace : this,
+			    														        	                        id        : xtype + 'Id',
+			    														        	                        width     : '100%',
+			    														        	                        height    : 700
+			    														        	                    });
+			    														        	                   // workAreaPanel.doLayout();
+			    														        	                    count++;  
+			    														        	                    var newCardIndex = workAreaPanel.items.indexOf(newPanel);
+			    														        	                    //alert(workAreaPanel.items.getKey(newPanel));
+			    														        	                    workAreaPanel.setActiveTab(newCardIndex);
+			    														        	                    if(loadGrid != 'empty') {
+			    														        	                    	Ext.getCmp(loadGrid).getStore().load();
+			    														        	                    }
+			    														        	                    jsFiledAdded += "["+xtype + 'Id'+"]";
+						    												                		}else{
+						    												                			var addedPanel = workAreaPanel.getChildByElement(xtype + 'Id');
+						    												                			alert(addedPanel);
+					    														        				newPanel = workAreaPanel.add({
+					    														        					closable  : true,
+			    														        	                        xtype     : xtype,
+			    														        	                        //workspace : this,
+			    														        	                        id        : xtype + 'Id',
+			    														        	                        width     : '100%',
+			    														        	                        height    : 700
+					    															                    }).show();
+					    														        				//newPanel.doLayout();
+					    															                    //workAreaPanel.doLayout();
+					    															                    alert("1");
+					    															                   // var newCardIndex = workAreaPanel.items.indexOf(newPanel);
+					    															                    //alert(newCardIndex);
+					    															                   // workAreaPanel.setActiveTab(newPanel);
+					    															                    alert("2");
+					    															                    if(loadGrid != 'empty') {
+					    												        	                    	Ext.getCmp(loadGrid).getStore().load();
+					    												        	                    }
+					    														        			
+						    												                		}  
+			    														                			} else {	
+			    														                				
+			    														                				
+			    														                				var addedPanel = workAreaPanel.items.get(xtype + 'Id');
+			    														                				alert(addedPanel);
+			    														                				//addedPanel = addedPanel.show();
+			    														                				alert(addedPanel.isHidden( ));
+			    														                				
+			    														                				if(addedPanel.isHidden( )){
+			    														                					var childTab = workAreaPanel.getChildByElement(xtype + 'Id');
+	    						    														            	childTab.tab.show();
+	    						    														            	 workAreaPanel.setActiveTab(childTab);
+			    														                				}
+    						    														            	//newPanel = addedPanel[0];     						    														            	
+    						    														            	var newCardIndex = workAreaPanel.items.indexOfKey(xtype + 'Id'); 
+    						    														            	alert(newCardIndex);    						    														            	
+    						    														            	
+    						    														               
+    						    														               
+    						    														                if(loadGrid != 'empty') {
+    						    													                    	Ext.getCmp(loadGrid).getStore().load();
+    						    													                    }
+    						    														               // workAreaPanel.unhideTabStripItem(addedPanel);//unhide
+    						    														            } 
+						    												                	} else {
+						    												        	      		Ext.MessageBox.show({
+					    												    						   title   : 'Warning',
+					    												    				           msg     : 'Maximum 9 Tabs Are Allowed To Open!',
+					    												    				           buttons : Ext.MessageBox.OK,
+					    												    				           icon    : Ext.MessageBox.WARNING,
+					    												    				           animEl  : 'mb9',
+					    												    				           minLength   : 300
+					    												    				       });
+						    												        	      	}
+						    												                	*/
+																								
+																								//LOGIC 3
+																								
+
+																								if(Ext.getCmp(loadGrid + 'Id')) {																									
+																									var addedPanel = workAreaPanel.getChildByElement(loadGrid + 'Id');
+																									Ext.getCmp('workAreaPanelId').setActiveTab(addedPanel);
+																								} 
+																								else {
+																									Ext.getCmp('workAreaPanelId').add({ 
+																										id: loadGrid + 'Id', 
+																										title: dispModuleName, 
+																										layout: 'fit', 
+																										closable: true, 
+																										items: { 
+																												xtype: itemName 
+																												//fldVal: fldVal 
+																												}
+																									}).show();
+																								}																								
+																								if(loadGrid != 'empty') {
+					    													                    	Ext.getCmp(loadGrid).getStore().load();
+					    													                    }
+						    												                }						    												                
+																						});
+																						menu.doLayout();
+																					});
+																		} catch(e) {
+																			Ext.MessageBox.alert('Error', "Network busy.Please try again! "+e );
+																		}
+																	}
+																				
+																});
+													    			}
+															}
+														});
+														
+														toolbar1.doLayout();
+														
+													});
+										} catch(e) {
+											Ext.MessageBox.alert('Error', "Network busy.Please try again! "+e );
+										}
+									}
+												
+								});
+						    	
+						    	 Ext.Ajax.request({  
+	                					url     : 'loadLoginUserInfo.action',
+	                					waitMsg : 'Loading E-Biz Application.!',
+	                					success : function (result, request) { 
+		                					    var userName = Ext.decode(result.responseText).user;
+		                						var userId = Ext.decode(result.responseText).userId;
+		                						var usrId = Ext.decode(result.responseText).usrId;
+		                						var date = Ext.decode(result.responseText).date;
+		                						var locId = Ext.decode(result.responseText).locId;
+		                						var locName = Ext.decode(result.responseText).locName;
+		                						var theme = Ext.decode(result.responseText).theme;
+		                						var locType = Ext.decode(result.responseText).hiddenUserLocType;
+		                						var orgId = Ext.decode(result.responseText).orgId;
+		                						var orgName = Ext.decode(result.responseText).orgName;
+		                						var orgCode = Ext.decode(result.responseText).orgCode;
+		                						var groupId = Ext.decode(result.responseText).groupId;
+		                						
+		                						Ext.getCmp('welcomeUserBtId').setText('<span style = "color:red;font-Weight:bold">'+userId+'</span>'); 
+		                						Ext.getCmp('hiddenLoginLoctionId').setValue(locId);	
+		                   					    Ext.getCmp('hiddenLoginLoctionName').setValue(locName);
+		                   					    Ext.getCmp('hiddenLoginOrgId').setValue(orgId);	
+		                   					    Ext.getCmp('hiddenLoginOrgName').setValue(orgName);
+		                   					    Ext.getCmp('hiddenLoginLoctionType').setValue(locType);	
+		                   					    Ext.getCmp('hiddenLoginOrgCode').setValue(orgCode);
+		                   					    Ext.getCmp('hiddenLoginGroupId').setValue(groupId);	
+		                   					    Ext.getCmp('hiddenLoginUserId').setValue(userId);
+		                   					    Ext.getCmp('hiddenLoginUsrId').setValue(usrId);	
+		                   					    Ext.getCmp('hiddenLoginUserName').setValue(userName);	
+	                			    		}
+	                				});
+							}
+	    			  }
+        });
+    	var toolbar2 = null;
+    	var jsFiledAdded = [];
+    	toolbar2 = new Ext.toolbar.Toolbar({
+        	width		: '100%',
+        	listeners	: { 'beforerender':function(){
+								toolbar2.add({// Dynamically Adding Split Button Based On Menus(Which Was Fetched From Database)..
+				        	    	 
+									xtype   : 'splitbutton',
+									text    : '',
+									name    : 'welcomeUserBtId',
+									id      : 'welcomeUserBtId',
+									style   : {fontWeight : "bold",color:"#7D2252"},
+									width   : '100%',
+									//glyph   : 0xf009,
+						            padding: '5',
+									menu    : [{
+										/*text:'Select Theme..'
+				                    },{
+				                        text:'Contact Us'
+				                    },{*/
+				                         text	 :'Logout'
+				                        ,tooltip : 'Logout'
+										,align   : 'right'
+										,height  : 26
+										,width   : 110
+										,handler : function(){
+												Ext.Ajax.request({ 
+												url 	: 'logoutUser.action',
+												waitMsg : 'Logging out from application Please wait...',
+												success : function(f, a) {
+													var Backlen = history.length;
+													history.go(-Backlen);
+													top.window.location.href = 'userLogout.action';
+												},
+												failure : function(f, a) {
+													Ext.Msg.alert('Warning',a.result.errormsg);
+												}
+												
+												});
+														}
+				                    }]
+									
+									});
+    			}
+    		}
+    	}); 
+		workAreaPanel = new Ext.TabPanel({
+			activeTab       : 0,
+        	width           : '100%',
+            autoHeight      : true,
+            deferredRender  : true,
+            autoScroll      : true,
+            id				: 'workAreaPanelId',
+           // renderTo        : Ext.getBody(),
+                items           : [{
+				                	xtype      : 'panel',
+				                    width      : '100%',
+				                	height     : 596,
+				                    border     : false,
+				                    autoScroll : true,
+				                    title      :'Dash Board',
+				                    items      : [{
+				                    				  //xtype  : 'quickLinksV',
+				                    				  //id     : 'quickLinksId'  
+				                    		 	 }]
+                },{
+	            	  xtype  : 'hidden',
+	            	  id     : 'hiddenLoginLoctionId' 
+	              },{
+	            	  xtype  : 'hidden',
+	            	  id     : 'hiddenLoginLoctionName'
+	              },{
+	            	  xtype  : 'hidden',
+	            	  id     : 'hiddenLoginOrgId'
+	              },{
+	            	  xtype  : 'hidden',
+	            	  id     : 'hiddenLoginOrgName' 
+	              },{
+	            	  xtype  : 'hidden',
+	            	  id     : 'hiddenLoginLoctionType'
+	              },{
+	            	  xtype  : 'hidden',
+	            	  id     : 'hiddenLoginOrgCode'
+	              },{
+	            	  xtype  : 'hidden',
+	            	  id     : 'hiddenLoginGroupId' 
+	              },{
+	            	  xtype  : 'hidden',
+	            	  id     : 'hiddenLoginUserId' 
+	              },{
+	            	  xtype  : 'hidden',
+	            	  id     : 'hiddenLoginUserName' 
+	              },{
+	            	  xtype  : 'hidden',
+	            	  id     : 'hiddenLoginUsrId' 
+				              }],
+           listeners		: {'remove' : function(tabPanel, tab){
+     							count--;	// Decrementing Count While Closing Tab..
+     							if(tab.id == 'StudentEntryMainPanelId'){
+     								//var mc = new singleton();
+     								//mc.removeKey('addStudentInfoUI');
+     							}
+     							//alert(tab.id);
+     							return true;
+     						  } }
+     						  
+        });
+    	
+    	Ext.create('Ext.container.Viewport', {
+            layout: 'border',
+            requires: [
+                       'BASE.view.location.LocationMainV',
+                       'BASE.view.organization.OrganizationMainV',
+                       'BASE.view.userManagement.UserMgtMainV',
+                       'BASE.view.changePassword.ChangePasswordV',
+                       'BASE.view.sequenceControl.SequenceControlMainV',
+                       'BASE.view.master.agent.AgentMainV',
+                       'BASE.view.master.subAgent.SubAgentMainV',
+                       'BASE.view.master.item.ItemMainV',
+                       'BASE.view.master.uom.UomMainV'
+                   ],
+            items: [{
+                region: 'north',
+                height: 35,
+               // html: '<h1 class="x-panel-header">Menu Buttons</h1>',
+                border: false,
+                margins: '0 0 5 0',
+              //items : toolbar1
+            	items : [{
+		                layout : 'column',
+		                width : '100%',
+						border : false,
+		                items : [{
+		                    },{
+							columnWidth : .9,
+							width : '100%',
+							layout : 'form',
+							border : false,
+							items : toolbar1
+						} ,{
+							columnWidth : .1,
+							width : '100%',
+							layout : 'form',
+							border : false,
+							items : toolbar2
+						}]	
+            	}]
+            }, {
+                region: 'west',                
+                width: 1
+                // could use a TreePanel or AccordionLayout for navigational items
+            }, {
+
+				region : 'south',
+				html : '<p><span class="footer_left">Powered by EaziBiz Technologies &copy 2011. All rights reserved.</span><span class="footer_right"> eBizRIG v1.0</span></p>',
+				style : {
+					fontWeight : "bold"
+				},
+				frame : true
+			
+				/*
+                region      : 'south',
+                padding     : -10,
+                //height      : 15,
+                frame       : true,
+				items	    : [{	
+        					  layout : 'column',
+        					  border : false,
+        					  items	 : [{
+        						  		  columnWidth : .8,
+        						  		  //layout:'form',
+        			                      html   : '<p><span class="footer_left"></span><span class="footer_right">Powered by EaziBiz Technologies &copy 2014. All rights reserved.</span></p>', 
+        						  		  border:false,
+		                				  items:[]
+        					  			},{
+        					  			  columnWidth : .2,
+        						  		 // layout:'form',
+        						  		  border:false,
+        						  		  items:[{
+          						  			        xtype  : 'displayfield',
+          						  			        id     : 'eBizVerisionDisp',
+          						  			        name   : 'eBizVerisionDisp'
+          						  			       // value  : 'eBiz V1.1'
+          						  		  	}]
+        					  			}]
+                				  }]
+            */}, {
+                region: 'east',              
+                width: 1
+            }, {
+                region: 'center',
+                items       : workAreaPanel,
+                autoScroll  : true,
+                border      : false
+            }]
+        });
+    }
+});
+var TimerRunning,TimerID;
+TimerRunning = false;
+
+function initTimer(){ //call the Init function when u need to start the timer
+   stopTimer();
+   TimerRunning = true;
+   TimerID = self.setTimeout("new BASE.view.common.SessionExpired().sessionExpired()",60000*28);
+}
+
+function stopTimer(){
+   if(TimerRunning)
+      clearTimeout(TimerID);
+   TimerRunning = false;
+}
+
+
+
